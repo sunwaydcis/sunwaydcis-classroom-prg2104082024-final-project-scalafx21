@@ -15,20 +15,20 @@ import scalafx.geometry.Pos.Center
 
 
 
-class Board { //Defines the chessboard]
+class Board { //Defines the chessboard
   private val pieces: Array[Array[Option[Piece]]] = Array.fill(8, 8)(None)
 
-  // Setter method to move a piece
-  def movePiece(): Unit = {
+  // Setter method to move a piece.
+  def makeMove(): Unit = {
   }
 
-  // Getter method to access a specific piece on the board
-  def getPiece() : Unit = {
+  // Getter method to access a specific piece on the board.
+  def getPieceAt() : Unit = {
 
   }
 
   // Getter method to access the entire board (for debugging or displaying the board)
-  def getBoard():Unit = {
+  def getBoardState():Unit = {
 
   }
 
@@ -38,7 +38,7 @@ class Board { //Defines the chessboard]
   def aiMove(): Unit = {
   }
 
-  //The function isInCheck is created to check whether the king is in checked by the opponents piece
+  //The function isInCheck is created to check whether the king is in check by the opponents piece
   def isInCheck(): Unit = {
   }
 
@@ -53,7 +53,7 @@ class Board { //Defines the chessboard]
 
 // Abstract class for Pieces
 abstract class Piece(val color: String, var position: (Int, Int)) {
-  def validMoves(board: Board): List[(Int, Int)] //Determines tha valid moves of each piece.Each piece have different valid moves
+  def validMoves(board: Board): List[(Int, Int)] //Determines the valid moves of each piece.Each piece have different valid moves
 
   def move(): Unit = {
 
@@ -86,7 +86,7 @@ abstract class Pawn(color:String,position:(Int,Int)) extends Piece(color,positio
 
 
 
-class Player(val name: String,val score: Int,val color: String, val playerType:String) {
+class Player(val name: String,val score: Int,val color: String) {
   // Fields
   private var isTurn:Boolean = false
   private  var status: String = "Active"
@@ -103,18 +103,15 @@ class Player(val name: String,val score: Int,val color: String, val playerType:S
   def setPlayerStatus(newStatus: String): Unit = {
   }
 
-  def getStatus(): String = status
-
-  def displayPlayerInfo(): Unit = {
-  }
+  def getPlayerStatus(): String = status
 }
 
 
-class HumanPlayer(name: String, score: Int, color: String) extends Player(name, score, color, "Human") {
+class HumanPlayer(name: String, score: Int, color: String) extends Player(name, score, color) {
 
 }
 
-class AiPlayer(name: String, score: Int, color: String) extends Player(name, score, color, "AI") {
+class AiPlayer(name: String, score: Int, color: String) extends Player(name, score, color) {
 
 }
 
@@ -135,7 +132,7 @@ class GameUi(){
 
 }
 
-//Code to apply generic programming is implemented in the case class  Move 
+//Code to apply generic programming is implemented in the case class  Move
 case class Move[T <: Piece](piece: T, from: Position, to: Position){
 
 }
@@ -158,3 +155,4 @@ object ChessApp extends JFXApp3 {
   override def start(): Unit = {
   }
 }
+
