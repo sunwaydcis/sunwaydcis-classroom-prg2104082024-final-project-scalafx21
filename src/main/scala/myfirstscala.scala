@@ -61,7 +61,7 @@ abstract class Piece(val color: String, var position: (Int, Int)) {
 }
 
 abstract class King(color:String,position:(Int,Int)) extends Piece(color,position){ //later change the class to concrete class,after the methods are implemented
-
+  //polymorphism is applied after method overriding .like when overriding the methods in the Piece clas such as the validMoves and move method .same goes for all the other pieces.
 }
 
 abstract class Queen(color:String,position:(Int,Int)) extends Piece(color,position){
@@ -135,7 +135,8 @@ class GameUi(){
 
 }
 
-case class Move(){
+//Code to apply generic programming is implemented in the case class  Move 
+case class Move[T <: Piece](piece: T, from: Position, to: Position){
 
 }
 
