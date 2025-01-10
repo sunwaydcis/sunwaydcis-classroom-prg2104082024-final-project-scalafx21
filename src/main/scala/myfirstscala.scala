@@ -15,6 +15,8 @@ import scalafx.geometry.Pos.Center
 //Defining the class Board
 class Board {
   val grid: Array[Array[Option[Piece]]] = Array.fill(8, 8)(None) //Board has a grid.the grid is a 8x8 empty grid with no pieces .
+  val validMoveGrid : Array[Array[String]] = Array.fill(8,8)(".")//A separate grid for marking valid moves.
+
   var currentPlayer: String = "white" // Initializing current player.The player that starts first is white, so thats why current player is initialized to white.]f  f] f]]]]
 
   //Method that initializes all the pieces on their respective positions on the chessboard.
@@ -65,9 +67,19 @@ class Board {
     }
   }
 
+  //method that allows players to see all the valid moves that the piece can make.
+  def displayBoard():Unit={
+    for(row <- grid.indices) {
+      for (col <- grid(row).indices) {
+        print(validMoveGrid(row)(col) + " ") // Print valid move grid instead of pieces
+      }
+      println()
+    }
+  }
+
   //Method that allows the chess pieces to move on the board
   def makeMove(from: (Int, Int), to: (Int, Int)): Unit = { //accepts the start and end positions as parameters
-    val piece = grid(from._1)(from._2) // gets the piece that is  on row 1 and column 2 on the board
+    val piece = grid(from._1)(from._2) // gets the piece at each position on the grid 
     if (piece.isEmpty) { // Check if there's no piece at the starting position.
       println("Invalid move: No piece at the starting position.") //Prints an error message that nom piece is found.
       return
@@ -138,36 +150,43 @@ case class Position(row: Int, col: Int) { //The class Position takes in the two 
 //  Piece class
 abstract class Piece(val color: String, val isWhite: Boolean, var position: Position) {
   //The abstract class Piece represents a chess piece with :
-  //-color:indicates whether the color of the piece is white or black(immutable)
-  //-position:The current position of the piece(mutable)
-  //-isWhite : Checks whether the piece  is white
-  def isValidMove(from: Position, to: Position, board: Board): Boolean // method to calculate all the valid moves of each piece.
+  //-color:The color of the piece (immutable, e.g., "white" or "black")
+  //-position:The current position of the piece on the board (mutable)
+  //-isWhite : Indicates if the piece is white (derived from the color)
+  def isValidMove(from: Position, to: Position, board: Board): Boolean // method to check if a move from one position to another is valid.
 
-  def getValidMoves(board: Board): List[Position] = {
+  def getValidMoves(board: Board): List[Position] = { //method to calculate all the valid moves of the piece from its current position.
     val boardSize = 8
     val allPossibleMoves = for {
       row <- 0 until boardSize
       col <- 0 until boardSize
-    } yield Position(row, col)
-
-    allPossibleMoves.filter(to => isValidMove(position, to, board)).toList
+      to = Position(row, col)
+      if isValidMove(position, to, board)  // Only keep valid moves
+    } yield to
+      allPossibleMoves.toList
   }
 
 
-  //def getValidMoves(board: Board): List[Position] // Method to get valid moves for the piece
+  def onClick(board: Board): Unit = { //This method is executed when a piece is clicked.
+    val validMoves = getValidMoves(board) //stores the validMoves in a validMoves variable.
 
-  def onClick(board: Board): Unit = {
-    val validMoves = getValidMoves(board)
+    // Prints the valid moves of the piece, along with its current position.
     println(s"Valid moves for ${this.display()} at ${position.row}, ${position.col}:")
     validMoves.foreach(move => println(s"(${move.row}, ${move.col})"))
   }
 
-  def isKing: Boolean = this.isInstanceOf[King] // Method to check if the piece is a King
+ // def isKing: Boolean = this.isInstanceOf[King] // Method to check if the piece is a King
 
   def display(): String //method to display the piece as a string representation.
 
-  def move(to: Position): Unit = { //method to move piece to new Position
-    println(s"Moving piece to ${to.row}, ${to.col}")
+  def move(to: Position,board: Board): Unit = { //method to move piece to new Position
+    if(isValidMove(position,to,board)){
+      position = to
+      println(s"Moving piece to ${to.row}, ${to.col}")
+    }else{
+      println(s"Invalid move to ${to.row}, ${to.col}")
+    }
+
   }
 }
 
@@ -175,15 +194,26 @@ abstract class Piece(val color: String, val isWhite: Boolean, var position: Posi
 class King(color: String, isWhite: Boolean, position: Position) extends Piece(color, isWhite, position) with Movable with Displayable { //King class is a subclass of the Piece class.
   override def isValidMove(from: Position, to: Position, board: Board): Boolean = {
     val rowDiff = Math.abs(from.row - to.row) //Calculates the difference between the from position row index and the to position row index.
-    val colDiff = Math.abs(from.col - to.col) //Calculates the difference between the from position column index and the to position row index.
+    val colDiff = Math.abs(from.col - to.col) //Calculates the difference between the from position column index and the to position column index.
 
     // A king can move one square in any direction (vertically, horizontally, or diagonally)
     rowDiff <= 1 && colDiff <= 1 //King can only move 1 square in any direction ,therefore the difference must be equal to 1 or less .
   }
 
-  override def display(): String = {
+  override def display(): String = {//display the King on the board
     if (isWhite) "\u2654" // White King
     else "\u265A" // Black King
+  }
+
+  override def onClick(board: Board): Unit={ //method to define what will happen when the king piece is clicked
+    //Step 1 :get the valid moves of the King
+    val validMoves = getValidMoves(board)
+    //Step 2 :Represent the valid moves of the King using a dot.
+    validMoves.foreach { move =>
+      board.validMoveGrid(move.row)(move.col) = "•"
+    }
+    // Step 3 :Ensure board update.
+    board.displayBoard()
   }
 }
 
@@ -196,9 +226,13 @@ class Queen(color: String, isWhite: Boolean, position: Position) extends Piece(c
     (from.row == to.row || from.col == to.col || rowDiff == colDiff) //ensures that the queen can move horizontally,vertically or diagonally any number of squares.
   }
 
-  override def display(): String = {
+  override def display(): String = {//display the queen on the board
     if(isWhite) "\u2655"
     else "\u265B"
+  }
+
+  override def onClick(board: Board): Unit = { //method to define what will happen when the queen piece is clicked
+
   }
 }
 
@@ -234,9 +268,13 @@ class Rook(color: String, isWhite: Boolean, position: Position) extends Piece(co
     false
   }
 
-  override def display(): String = {
+  override def display(): String = { //displays the Rook on the board
     if (isWhite) "\u2656"
     else "\u265C"
+  }
+
+  override def onClick(board: Board): Unit ={ //method to define what will happen when the Rook is clicked
+
   }
 }
 
@@ -276,9 +314,13 @@ class Bishop(color: String, isWhite: Boolean, position: Position) extends Piece(
   }
 
   // Override display method to show the Bishop as "B"
-  override def display(): String = {
+  override def display(): String = { //displays the bishop on the board.
     if (isWhite) "\u2657"
     else "\u265D"
+  }
+
+  override def onClick(board: Board): Unit = { //method to define what will happen when the bishop  is clicked
+
   }
 }
 
@@ -294,9 +336,13 @@ class Knight(color: String, isWhite: Boolean, position: Position) extends Piece(
   }
 
   // Override display method to show the Knight as "N"
-  override def display(): String = {
+  override def display(): String = { //displays the knight on the board
     if (isWhite) "\u2658"
     else "\u265E"
+  }
+
+  override def onClick(board: Board): Unit = { //defines what will happen when the Knight is clicked.
+
   }
 }
 
@@ -319,7 +365,6 @@ class Pawn(color: String, isWhite: Boolean, position: Position) extends Piece(co
       board.getPieceAt(to).get.isWhite != this.isWhite) {
       return true
     }
-    false
 
     //Pawns cannot move backwards
     if (isWhite && from.row > to.row || !isWhite && from.row < to.row) {
@@ -328,16 +373,29 @@ class Pawn(color: String, isWhite: Boolean, position: Position) extends Piece(co
     false
   }
 
-  override def display(): String = {
+  override def display(): String = { //displays the pawn on the board
     if (isWhite) "\u2659"
     else "\u265F"
+  }
+
+  override def onClick(board: Board): Unit = { //defines what will happen when the pawn is clicked
+    val validMoves = getValidMoves(board)
+
+    // Debugging: Print valid moves to ensure they are being calculated
+    println(s"Valid moves for pawn at ${position}: ${validMoves.mkString(", ")}")
+    //Step 2 :Represent the valid moves of the King using a dot.
+    validMoves.foreach { move =>
+      board.validMoveGrid(move.row)(move.col) = "•"
+    }
+    // Step 3 :Ensure board update.
+    board.displayBoard()
   }
 }
 
 //Player class
 class Player(private val color: String) { //Player has a property color.
   def getColor: String = color// Getter method for color,
-  
+
   def makeMove(board: Board): Unit = {
     println(s"$color's AI is making a move.")
 
@@ -379,7 +437,11 @@ class Game {
   var currentPlayer: Player = whitePlayer //Initially ,the current player is white player.
 
   def startGame(): Unit = { //method to start game
-    println("Game started!") //prints a message indicating that the game has started
+    println("Game started!") //prints a message indicating that the game has started.
+  }
+
+  def endGame() :Unit = {
+    println("Game ended!") //prints a message indicating that the game has ended.
   }
 }
 
@@ -408,7 +470,7 @@ case class Move[T <: Piece](piece: T, from: Position, to: Position) {
 
     if (isValidMove(board)) {
       val piece = startSquare.get
-      piece.move(to)
+      piece.move(to,board)
 
       //update the board with the moved piece
       board.grid(from.row)(from.col) = None //Remove the piece from the old position
