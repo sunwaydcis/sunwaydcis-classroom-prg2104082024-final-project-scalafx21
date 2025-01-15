@@ -28,61 +28,56 @@ trait Displayable {
 }
 
 // SubTask class to manage subtasks
-case class SubTask(name: String, description: String, isCompleted: Boolean = false,val priority: Int = 0) {
+case class SubTask(name: String, description: String, isCompleted: Boolean = false) {
   def displayInfo: String = {
-    val status = if (isCompleted) "[Completed]" else "[Pending]"
-    s"$status Subtask: $name - $description"
+    s" Subtask: $name - $description"
   }
 }
 
 
-abstract class Task(val name: String, val description: String, var isCompleted: Boolean = false,val dueDate: Option[LocalDate] = None,val priority: Int = 0) extends Displayable {
+abstract class Task(val name: String, val description: String, var isCompleted: Boolean = false) extends Displayable {  // Removed dueDate
   def taskType: String // Abstract method to define the task type
-  def subTasks: List[SubTask] = List() // Subtasks related to the task
 
-  // Proper implementation of displayInfo
+  // Updated displayInfo to exclude the dueDate
   override def displayInfo: String = {
-    val status = if (isCompleted) "[Completed]" else "[Pending]"
-    val due = dueDate.map(d => s"Due: $d").getOrElse("No due date")
-    val priorityInfo = if (priority > 0) s"Priority: $priority" else "No priority"
-    s"$status $taskType: $name - $description- $due - $priorityInfo"
+    s" $taskType: $name - $description"
   }
 }
 
-class PersonalTask(name: String, description: String, dueDate: Option[LocalDate] = None,isCompleted: Boolean = false)
-  extends Task(name, description, isCompleted,dueDate) {
+class PersonalTask(name: String, description: String, isCompleted: Boolean = false)
+  extends Task(name, description, isCompleted) {  // Removed dueDate
   override def taskType: String = "Personal"
 }
 
-class WorkTask(name: String, description: String,dueDate: Option[LocalDate] = None,isCompleted: Boolean = false)
-  extends Task(name, description, isCompleted,dueDate) {
+class WorkTask(name: String, description: String, isCompleted: Boolean = false)
+  extends Task(name, description, isCompleted) {  // Removed dueDate
   override def taskType: String = "Work"
 }
 
-case class SpecialTask(override val name: String, override val description: String, override val priority: Int, override val dueDate: Option[LocalDate])
-  extends Task(name, description, priority = priority, dueDate = dueDate) {
-  override def taskType: String = s"Special (Priority $priority)"
+case class SpecialTask(override val name: String, override val description: String)
+  extends Task(name, description) {
+  override def taskType: String = "Special"
 }
-
 //Defining the class Task Manager
 //Task Manager is responsible for managing the tasks.
 class TaskManager[T <: Task] {
   private val tasks: mutable.ListBuffer[T] = mutable.ListBuffer()
 
-  def addTask(task:T): Unit = tasks += task //adds tasks to the tasks list .
-  def removeTask(task:T): Unit = tasks -= task //remove tasks from the tasks list.
-  def getTasks: List[T] = tasks.sortBy(_.dueDate.getOrElse(LocalDate.MAX)).toList //get the tasks list
-  def markAsCompleted(task:T): Unit = {
-    tasks.find(_ == task).foreach(_.isCompleted = true) //marks the completed tasks
+  def addTask(task: T): Unit = tasks += task // Adds tasks to the tasks list
+  def removeTask(task: T): Unit = tasks -= task // Removes tasks from the tasks list
+  def getTasks: List[T] = tasks.toList //Returns all tasks as an immutable list
+  def markAsCompleted(task: T): Unit = {
+    tasks.find(_ == task).foreach(_.isCompleted = true) // Marks the task as completed
   }
-  def clearAll(): Unit = tasks.clear()//clears all the tasks
-  def getCompletedTasks: List[T] = tasks.filter(_.isCompleted).toList // gets the completed tasks
+  def clearAll(): Unit = tasks.clear() // Clears all the tasks
+  def getCompletedTasks: List[T] = tasks.filter(_.isCompleted).toList // Gets the completed tasks
 
+  // Updated saveToFile method
   def saveToFile(filePath: String): Unit = {
     val file = new File(filePath)
     val writer = new PrintWriter(file)
     tasks.foreach { task =>
-      writer.println(s"${task.name}|${task.description}|${task.isCompleted}|${task.dueDate.getOrElse("")}|${task.priority}")
+      writer.println(s"${task.name}|${task.description}|${task.isCompleted}")
     }
     writer.close()
   }
@@ -150,45 +145,29 @@ object TaskManagementApp extends JFXApp3 {
 
     }
 
-    val priorityField = new TextField {
-      promptText = "Priority (for Special Tasks)"
-      disable = true
-      style = "-fx-font-size: 14px; -fx-font-weight: bold; -fx-background-color: white; -fx-border-color: #cccccc; -fx-border-radius: 5px; -fx-padding: 10px;"
-    }
-
-    val dueDateField = new DatePicker {
-      promptText = "Select Due Date"
-    }
-
-    // Enable priority input only for SpecialTask
-    taskTypeComboBox.onAction = _ => {
-      priorityField.disable = taskTypeComboBox.value() != "Special"
-    }
-
     val addButton = new Button("Add Task") {
       onAction = _ => {
         val name = taskNameField.text()
         val description = taskDescriptionField.text()
         val taskType = taskTypeComboBox.value()
-        val dueDate = Option(dueDateField.value.value)
-        val priority = priorityField.text().toIntOption.getOrElse(0)
 
         if (name.nonEmpty && taskType != null) {
-          val task = taskType match{
+          val task = taskType match {
             case "Personal" => new PersonalTask(name, description)
             case "Work" => new WorkTask(name, description)
-            case "Special" => SpecialTask(name, description, priority,dueDate)
+            case "Special" => SpecialTask(name, description)
           }
           taskManager.addTask(task)
           taskList += task
 
+
           // Clear input fields
           taskNameField.clear()
           taskDescriptionField.clear()
-          priorityField.clear()
           taskTypeComboBox.value = null
-          dueDateField.value = null
-        }else{
+
+          // No need to clear dueDateField as it's no longer used
+        } else {
           new Alert(Alert.AlertType.Warning) {
             title = "Input Error"
             headerText = "Missing Fields"
@@ -199,25 +178,20 @@ object TaskManagementApp extends JFXApp3 {
       style = "-fx-font-size: 16px; -fx-font-weight: bold; -fx-background-color: #4caf50; -fx-border-radius: 5px; -fx-background-radius: 5px; -fx-padding: 10px; -fx-text-fill: white; -fx-cursor: hand;"
     }
 
-    //Task list view
+    // Task list view
     val taskListView = new ListView[Task](taskList) {
       cellFactory = (_: ListView[Task]) => new ListCell[Task] {
         item.onChange { (_, _, task) =>
           text = if (task != null) {
             val status = if (task.isCompleted) "[Completed]" else "[Pending]"
-            val taskType = task match{
+            val taskType = task match {
               case _: PersonalTask => "Personal"
-              case _: WorkTask     => "Work"
-              case special: SpecialTask => s"Special (Priority: ${special.priority})"
-              case _               => "Unknown"
+              case _: WorkTask => "Work"
+              case special: SpecialTask => "Special"
+              case _ => "Unknown"
             }
-            val dueDate = task match {
-              case special: SpecialTask => special.dueDate.map(_.toString).getOrElse("No Due Date")
-              case personal: PersonalTask => personal.dueDate.map(_.toString).getOrElse("No Due Date")
-              case work: WorkTask => work.dueDate.map(_.toString).getOrElse("No Due Date")
-              case _ => "N/A"
-            }
-            s"$status ${task.name} - $taskType | Due: $dueDate"
+            // Removed dueDate handling since it's no longer part of the Task class
+            s"${task.name} - $taskType"
           } else ""
         }
       }
@@ -256,7 +230,7 @@ object TaskManagementApp extends JFXApp3 {
             }
           )
         },
-       new Menu("View") {
+        new Menu("View") {
           items = Seq(
             new MenuItem("View Completed Tasks") {
               onAction = _ => {
@@ -273,19 +247,19 @@ object TaskManagementApp extends JFXApp3 {
             }
           )
         },
-          new Menu("Help") {
-            items = Seq(
-              new MenuItem("About") {
-                onAction = _ => println("Task Management System v1.0")
-              }
-            )
-          }
-        )
+        new Menu("Help") {
+          items = Seq(
+            new MenuItem("About") {
+              onAction = _ => println("Task Management System v1.0")
+            }
+          )
+        }
+      )
     }
     // Layout
     val inputPane = new VBox(10) {
       padding = Insets(10)
-      children = Seq(taskNameField, taskDescriptionField, taskTypeComboBox, priorityField, dueDateField, addButton)
+      children = Seq(taskNameField, taskDescriptionField, taskTypeComboBox, addButton)
     }
 
     val controlPane = new HBox(10) {
@@ -311,5 +285,5 @@ object TaskManagementApp extends JFXApp3 {
   }
 }
 
- 
 
+  
